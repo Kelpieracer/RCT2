@@ -9,10 +9,7 @@ void setup() {
 	irrecv.blink13(true);
 	
 	// Setup sensors and lasers
-	for (int i = 0; i<SENSORS - 1; i++)
-		pinMode(Sensor[i], INPUT);
-	for (int i = 0; i<SENSORS - 1; i++)
-		pinMode(Laser[i], OUTPUT);
+	setupSensors();
 
 	// Setup display
 	for (int i = 0; i < 8; i++) {

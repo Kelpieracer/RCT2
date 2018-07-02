@@ -1,11 +1,18 @@
 #include "Arduino.h"
 
-const int SENSORS = 20;
+#define SENSORS 20
+#define FIRST_SENSOR_IN_USE 4
+#define LAST_SENSOR_IN_USE 13
+#define SENSOR_PERIOD_MS 10
+#define LASER_SENSOR_DELAY 1000
+#define FAIL 0
+#define COVER 1
+#define SEE 2
 
 // Photo transistor sensors
 // PT202C
 // pins 1, 11 and 21 are ground
-uint8_t Sensor[20] = { 26, // 2
+uint8_t Sensor[SENSORS] = { 26, // 2
 27,		// 3
 28,		// 4
 29,		// 5
@@ -27,7 +34,7 @@ uint8_t Sensor[20] = { 26, // 2
 45,		// 23
 };
 
-uint8_t Laser[20] = { 2,	// 2
+uint8_t Laser[SENSORS] = { 2,	// 2
 3,		// 3
 4,		// 4
 A14,	// 5
@@ -49,4 +56,43 @@ A9,		// 22
 A8,		// 23
 };
 
+byte sensorState[SENSORS];
 
+long sensorTime = millis();
+
+void setupSensors() {
+	for (int i = 0; i<SENSORS - 1; i++)
+		pinMode(Sensor[i], INPUT);
+	for (int i = 0; i<SENSORS - 1; i++)
+		pinMode(Laser[i], OUTPUT);
+}
+
+void checkSensors(bool running) {
+	// Is it time to check the sensors?
+	long _currentTime = millis();
+	if (_currentTime < sensorTime + SENSOR_PERIOD_MS)
+		return;
+	else
+		sensorTime = _currentTime;
+	if (!running)
+		return;
+
+	// Check all the sensors that are in use
+	for (byte i = FIRST_SENSOR_IN_USE; i < LAST_SENSOR_IN_USE+1; i++) {
+		if (digitalRead(Sensor[i]) == LOW) {
+			// Too much light
+			sensorState[i] = FAIL;
+		}
+		else {
+			// Default is input is covered
+			sensorState[i] = COVER;
+		}
+		digitalWrite(Laser[i], HIGH);
+		for (int del = 0; del < LASER_SENSOR_DELAY; del++) {
+		}
+		if (digitalRead(Sensor[i]) == LOW)
+			sensorState[i] = SEE;
+		digitalWrite(Laser[i], LOW);
+	};
+	delay(0);
+}

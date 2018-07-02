@@ -16,6 +16,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="RCT.ino" />
+    <None Include="aDotMatrix.ino" />
+    <None Include="zSetup.ino" />
+    <None Include="zzMain.ino" />
+    <None Include="aSensors.ino" />
+    <None Include="bIR.ino" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.RCT.vsarduino.h">
