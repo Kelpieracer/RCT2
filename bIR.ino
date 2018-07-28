@@ -37,21 +37,38 @@ void initIR()
 
 void checkIR()
 {
+	uint16_t v;
 	if (irrecv.decode(&results)) {
 		//Serial.println(results.value, HEX);
 		switch (results.value)
 		{
 		case IR_USD:
 			changeMode(MODE_TEST);
+			Serial.println("MODE_TEST");
 			break;
 		case IR_PAUSE:
 			changeMode(MODE_2ON2OFF);
+			Serial.println("MODE_2ON2OFF");
 			break;
 		case IR_PWR:
 			changeMode(MODE_RC);
+			Serial.println("MODE_RC");
 			break;
 		case IR_MUTE:
 			changeMode(MODE_MUTE);
+			Serial.println("MODE_MUTE");
+			break;
+		case IR_MINUS:
+			Serial.println("VOLUME DOWN");
+			if (!(v = sfx.volDown())) {
+				Serial.println("Failed to adjust");
+			}
+			break;
+		case IR_PLUS:
+			Serial.println("VOLUME UP");
+			if (!(v = sfx.volUp())) {
+				Serial.println("Failed to adjust");
+			}
 			break;
 		default:
 			break;

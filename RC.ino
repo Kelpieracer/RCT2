@@ -92,19 +92,22 @@ void drawRCHits(byte* sensorData, byte* screenBuff)
 	screenBuff[1] = 0;
 
 	float rel = (float) (LAST_SENSOR_IN_USE - FIRST_SENSOR_IN_USE + 1) / 16;
+	//Serial.print(rel); Serial.println(" ");
 
 	for (byte i = FIRST_SENSOR_IN_USE; i <= LAST_SENSOR_IN_USE; i++)
 	{
 		byte idx = i - FIRST_SENSOR_IN_USE;
-		byte dispIdx = rcleds[(int)(rel / (float)idx)];
+		byte dispIdx = rcleds[(int)((float)idx / rel)];
+
+		//Serial.print("idx:"); Serial.print(idx); Serial.print(" dispIdx"); Serial.println(dispIdx);
 		if (sensorData[idx] == SENSOR_COVERED)
 			if (dispIdx < 8)
 			{
-				screenBuff[0] |= bitWise[7-dispIdx];
+				screenBuff[0] |= bitWise[dispIdx];
 			}
 			else
 			{
-				screenBuff[1] |= bitWise[(7-(dispIdx-8))];
+				screenBuff[1] |= bitWise[dispIdx-8];
 			}
 	}
 }
@@ -188,9 +191,9 @@ void cumulateRCSensor(byte* sensors)
 	{
 		if (sensors[i] == SENSOR_COVERED)
 		{
-			//if(rcSensorCumulative[i] != SENSOR_COVERED)
-			//	if (!sfx.playTrack("CLICK1  WAV"))
-			//		Serial.println("Failed to play track?");					
+			if(rcSensorCumulative[i] != SENSOR_COVERED)
+				if (!sfx.playTrack("CLICK0  WAV"))
+					Serial.println("Failed to play track?");					
 			rcSensorCumulative[i] = SENSOR_COVERED;
 		}
 	}
@@ -275,9 +278,27 @@ void checkRC()
 		{
 			rcMode = RC_MODE_ENDED;
 			Serial.println("RC_MODE_ENDED");
-			drawRCScore(calculateRCScore(), RCScreenBuffer);
+			byte _score = calculateRCScore();
+			drawRCScore(_score, RCScreenBuffer);
 			drawRCHits(rcSensorCumulative, RCScreenBuffer);
 			drawRCSpeed(rcStrideEnd_ms-rcStrideStart_ms, RCScreenBuffer);
+			switch (_score)
+			{
+			case 0:
+				break;
+			case 1:
+				if (!sfx.playTrack("GOOD    WAV")) Serial.println("Failed to play track?");
+				break;
+			case 2:
+				if (!sfx.playTrack("VERYGOODWAV")) Serial.println("Failed to play track?");
+				break;
+			case 3:
+				if (!sfx.playTrack("CELEBRATWAV")) Serial.println("Failed to play track?");
+				break;
+			default:
+				break;
+			}
+			break;
 		}
 		else if(!isBoardClear(sensorStates))
 		{
