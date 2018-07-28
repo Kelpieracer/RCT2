@@ -23,6 +23,8 @@
     <None Include="bIR.ino" />
     <None Include="Sound.ino" />
     <None Include="Buzzer.ino" />
+    <None Include="Display.ino" />
+    <None Include="Running.ino" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.RCT.vsarduino.h">

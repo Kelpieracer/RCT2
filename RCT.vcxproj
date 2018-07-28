@@ -91,6 +91,12 @@
     <None Include="Buzzer.ino">
       <FileType>CppCode</FileType>
     </None>
+    <None Include="Running.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="Display.ino">
+      <FileType>CppCode</FileType>
+    </None>
     <None Include="RCT.ino">
       <FileType>CppCode</FileType>
     </None>

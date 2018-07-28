@@ -72,6 +72,13 @@ void checkSensors(bool running, bool startRecording) {
 	if (!running)	// Is it time to check the sensors?
 		return;
 
+	if (mode == MODE_MUTE)
+	{
+		for (byte i = FIRST_SENSOR_IN_USE; i < LAST_SENSOR_IN_USE + 1; i++)
+			digitalWrite(Laser[i], LOW);
+		return;
+	}
+
 	if (_currentTime < sensorTime + SENSOR_PERIOD_MS)
 		return;
 	else

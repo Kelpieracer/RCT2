@@ -3,6 +3,7 @@
 		refreshDisplay();
 		checkBuzzer();
 		checkIR();
+		showUI();
 	}
 
 

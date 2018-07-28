@@ -42,20 +42,16 @@ void checkIR()
 		switch (results.value)
 		{
 		case IR_USD:
-			mode = MODE_TEST;
-			playBuzzChar(BuzzTest);
+			changeMode(MODE_TEST);
 			break;
 		case IR_PAUSE:
-			mode = MODE_2ON2OFF;
-			playBuzzChar(Buzz2on2of);
+			changeMode(MODE_2ON2OFF);
 			break;
 		case IR_PWR:
-			mode = MODE_RUNNING;
-			playBuzzChar(BuzzRun);
+			changeMode(MODE_RUNNING);
 			break;
 		case IR_MUTE:
-			mode = MODE_MUTE;
-			playBuzzChar(BuzzMute);
+			changeMode(MODE_MUTE);
 			break;
 		default:
 			break;
