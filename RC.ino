@@ -4,11 +4,13 @@
 #define RC_MODE_STARTED 1
 #define RC_MODE_ENDED 2
 #define RC_MODE_WAIT_TO_CLEAR 3
+#define RC_MODE_STARTED_BUT_IN_AIR 4
 
 #define RC_WAIT_BEFORE_NEW_STRIDE 2000
 #define RC_TOO_LONG_STRIDE_MS 5000
+#define RC_NO_CONTACT_TIME_MS 500
 
-#define RC_SCORE_EASING 3
+#define RC_SCORE_EASING 2
 
 byte rcMode = RC_MODE_ARMED;
 long rcStrideStart_ms;
@@ -113,7 +115,9 @@ byte getLowestHit(byte* sensorData)
 	for (lowest = FIRST_SENSOR_IN_USE; lowest <= LAST_SENSOR_IN_USE; lowest++)
 		if (sensorData[lowest] == SENSOR_COVERED)
 			break;
+	Serial.print("lowest:"); Serial.print(lowest);
 	float rel = 1 - (float) (lowest - FIRST_SENSOR_IN_USE) / (LAST_SENSOR_IN_USE - FIRST_SENSOR_IN_USE);
+	Serial.print(" / "); Serial.println(3.99 * rel);
 	return 3.99 * rel;
 }
 
@@ -138,7 +142,17 @@ byte getStrideSensors(byte* sensorData)
 		if (sensorData[i] == SENSOR_COVERED)
 			sensorCount++;
 	float rel = (float)sensorCount / (LAST_SENSOR_IN_USE - FIRST_SENSOR_IN_USE);
-	return 3.99 * rel;
+	return 10 * rel;
+}
+
+byte Max(byte a, byte b)
+{
+	return a > b ? a : b;
+}
+
+byte Min(byte a, byte b)
+{
+	return a < b ? a : b;
 }
 
 bool isBoardClear(byte* sensorData)
@@ -148,7 +162,7 @@ bool isBoardClear(byte* sensorData)
 		//Serial.print(i); Serial.print(" ");
 		if (sensorData[i] == SENSOR_COVERED)
 		{
-			Serial.println("now");
+			//Serial.println("now");
 			return false;
 		}
 	}
@@ -174,9 +188,9 @@ void cumulateRCSensor(byte* sensors)
 	{
 		if (sensors[i] == SENSOR_COVERED)
 		{
-			if(rcSensorCumulative[i] != SENSOR_COVERED)
-				if (!sfx.playTrack("CLICK1  WAV"))
-					Serial.println("Failed to play track?");					
+			//if(rcSensorCumulative[i] != SENSOR_COVERED)
+			//	if (!sfx.playTrack("CLICK1  WAV"))
+			//		Serial.println("Failed to play track?");					
 			rcSensorCumulative[i] = SENSOR_COVERED;
 		}
 	}
@@ -189,7 +203,21 @@ byte calculateRCScore()
 
 byte _calculateRCScore(byte sensors, byte lowestScore, byte strideLength, byte speed)
 {
-	byte _totalScore = ((sensors * lowestScore * strideLength * (speed / 2)) * RC_SCORE_EASING) / 4;
+	byte rSensors = Min(Max(sensors, 1), 3);
+	byte rLowest = Min(Max(lowestScore, 1), 3);
+	byte rLength = Min(Max(strideLength, 1), 3);
+	byte rSpeed = (speed / 2);
+	Serial.print(rSensors); Serial.print(" ");
+	Serial.print(rLowest); Serial.print(" ");
+	Serial.print(rLength); Serial.print(" ");
+	Serial.print(rSpeed); Serial.println(" ");
+	byte _totalScore = ((rSensors * rLowest * rLength * rSpeed) * RC_SCORE_EASING) / 3;
+	if (rSpeed > 0 && _totalScore == 0)
+		_totalScore = 1;
+
+	for (byte i = FIRST_SENSOR_IN_USE; i <= LAST_SENSOR_IN_USE; i++)
+		Serial.print(rcSensorCumulative[i]);
+	Serial.println();
 
 	Serial.print("Sensors: ");
 	Serial.print(sensors);
@@ -205,10 +233,7 @@ byte _calculateRCScore(byte sensors, byte lowestScore, byte strideLength, byte s
 	Serial.print(_totalScore);
 	Serial.println("");
 
-	if (_totalScore > 3)
-		_totalScore = 3;
-
-	return _totalScore;
+	return Max(Min(_totalScore, 3), 0);
 }
 
 extern byte RCScreenBuffer[];
@@ -221,10 +246,10 @@ void checkRC()
 		{
 			break;
 		}
-		Serial.println("Not Clear");
 		rcStrideStart_ms = millis();
 		rcMode = RC_MODE_STARTED;
 		Serial.println("RC_MODE_STARTED");
+		cumulateRCSensor(sensorStates);
 		break;
 	case RC_MODE_STARTED:
 		if (millis() - RC_TOO_LONG_STRIDE_MS > rcStrideStart_ms)
@@ -233,16 +258,32 @@ void checkRC()
 			Serial.println("RC_MODE_WAIT_TO_CLEAR");
 			clearRCScreen(RCScreenBuffer);
 			playBuzzChar(BuzzFail);
+			break;
 		}
 		drawRCHits(rcSensorCumulative, RCScreenBuffer);
 		if (isBoardClear(sensorStates))
 		{
+			rcStrideEnd_ms = millis();
+			rcMode = RC_MODE_STARTED_BUT_IN_AIR;
+			Serial.println("RC_MODE_STARTED_BUT_IN_AIR");
+			break;
+		}
+		cumulateRCSensor(sensorStates);
+		break;
+	case RC_MODE_STARTED_BUT_IN_AIR:
+		if(millis() - RC_NO_CONTACT_TIME_MS > rcStrideEnd_ms)
+		{
 			rcMode = RC_MODE_ENDED;
 			Serial.println("RC_MODE_ENDED");
-			rcStrideEnd_ms = millis();
-			drawRCHits(rcSensorCumulative, RCScreenBuffer);
 			drawRCScore(calculateRCScore(), RCScreenBuffer);
+			drawRCHits(rcSensorCumulative, RCScreenBuffer);
 			drawRCSpeed(rcStrideEnd_ms-rcStrideStart_ms, RCScreenBuffer);
+		}
+		else if(!isBoardClear(sensorStates))
+		{
+			rcMode = RC_MODE_STARTED;
+			Serial.println("RC_MODE_STARTED");
+			cumulateRCSensor(sensorStates);
 		}
 		break;
 	case RC_MODE_ENDED:
@@ -250,7 +291,6 @@ void checkRC()
 		{
 			rcMode = RC_MODE_ARMED;
 			Serial.println("RC_MODE_ARMED");
-			clearRCScreen(RCScreenBuffer);
 			clearRCSensorCumulative();
 			playBuzzChar(BuzzBip);
 		}

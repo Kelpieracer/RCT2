@@ -21,7 +21,7 @@
 #define MODE_RC 2
 #define MODE_MUTE 3
 
-static char mode = MODE_TEST;
+static char mode = MODE_RC;
 
 byte sensorStates[SENSORS];
 
