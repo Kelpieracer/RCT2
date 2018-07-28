@@ -38,7 +38,7 @@ void initIR()
 void checkIR()
 {
 	if (irrecv.decode(&results)) {
-		Serial.println(results.value, HEX);
+		//Serial.println(results.value, HEX);
 		switch (results.value)
 		{
 		case IR_USD:
@@ -48,7 +48,7 @@ void checkIR()
 			changeMode(MODE_2ON2OFF);
 			break;
 		case IR_PWR:
-			changeMode(MODE_RUNNING);
+			changeMode(MODE_RC);
 			break;
 		case IR_MUTE:
 			changeMode(MODE_MUTE);

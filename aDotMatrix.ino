@@ -107,9 +107,13 @@ byte bitWise[8] = { B00000001, B00000010, B00000100, B00001000, B00010000, B0010
 byte* getRawSensorData(byte blink, byte sensors[]) 
 {
 	static byte testModeScreenBuffer[8] = { 0,0,0,0,0,0,0,0 };
+	for (byte i = 0; i <= 7; i++)
+		testModeScreenBuffer[i] = 0;
+
 	//for (int i = FIRST_SENSOR_IN_USE; i <= LAST_SENSOR_IN_USE; i++)
 	//	Serial.print(sensors[i]);
 	//Serial.println("");
+
 	for (byte sensor = 0; sensor < 8; sensor++)
 	{
 		checkSensor(&sensors[sensor], &testModeScreenBuffer[0], 0, sensor);
@@ -122,11 +126,13 @@ byte* getRawSensorData(byte blink, byte sensors[])
 	{
 		checkSensor(&sensors[sensor], &testModeScreenBuffer[2], 2, sensor);
 	}
-	return testModeScreenBuffer;
-	//Serial.print(output[0], BIN);
+
+	//Serial.print(testModeScreenBuffer[0], BIN);
 	//Serial.print(" - ");
-	//Serial.print(output[1], BIN);
+	//Serial.print(testModeScreenBuffer[1], BIN);
 	//Serial.println("");
+
+	return testModeScreenBuffer;
 }
 
 byte checkSensor(byte *sensor, byte *output, byte row, byte sensorIdx)

@@ -18,10 +18,10 @@
 
 #define MODE_TEST 0
 #define MODE_2ON2OFF 1
-#define MODE_RUNNING 2
+#define MODE_RC 2
 #define MODE_MUTE 3
 
-static char mode = MODE_RUNNING;
+static char mode = MODE_TEST;
 
 byte sensorStates[SENSORS];
 

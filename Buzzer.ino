@@ -8,6 +8,7 @@ int Buzz2on2of[] = { 1, 1, 1, 1, 1, 1, 5, 1, 5, 1, 0 };
 int BuzzRun[] = { 1, 1, 5, 1, 1, 1, 0 };
 int BuzzTest[] = { 5, 5, 1, 5, 1, 1, 1, 1, 1, 5, 5, 0 };
 int BuzzMute[] = { 5, 1, 5, 0 };
+int BuzzFail[] = { 10, 0 };
 
 static long _buzzerTime_ms = millis();
 static int* _buzzPtr = &BuzzBip[1];
@@ -49,14 +50,7 @@ void checkBuzzer()
 		return;
 	else
 	{
-		Serial.print((long)_buzzPtr);
-		Serial.print(" ");
-		Serial.print(*_buzzPtr);
 		_buzzPtr++;
-		Serial.print("-");
-		Serial.print((long)_buzzPtr);
-		Serial.print(" ");
-		Serial.println(*_buzzPtr);
 		if (*_buzzPtr == 0)
 		{
 			digitalWrite(BUZZER_PIN, LOW);

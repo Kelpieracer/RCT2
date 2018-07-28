@@ -3,13 +3,12 @@
 static long _UITime_ms = millis();
 static bool _newUI = false;
 byte* screenPtr = CLEAR;
-byte runningScreenBuffer[] = { 0,0,0,0,0,0,0,0 };
+byte RCScreenBuffer[] = { 0,0,0,0,0,0,0,0 };
 extern byte* screenBuffer;
 extern byte* testModeScreenBuffer;
 
 void changeMode(int newMode)
 {
-	 
 	mode = newMode;
 	switch (newMode)
 	{
@@ -25,7 +24,10 @@ void changeMode(int newMode)
 		_UITime_ms = millis() + UI_CHANGE_SHOW_TIME;
 		_newUI = true;
 		break;
-	case MODE_RUNNING:
+	case MODE_RC:
+		rcMode = RC_MODE_ARMED;
+		Serial.println("RC_MODE_ARMED");
+		clearRCSensorCumulative();
 		playBuzzChar(BuzzRun);
 		screenBuffer = R;
 		_UITime_ms = millis() + UI_CHANGE_SHOW_TIME;
@@ -63,8 +65,9 @@ void showUI()
 	case MODE_MUTE:
 		screenBuffer = CLEAR;
 		break;
-	case MODE_RUNNING:
-		screenBuffer = runningScreenBuffer;
+	case MODE_RC:
+		checkRC();
+		screenBuffer = RCScreenBuffer;
 		break;
 	case MODE_TEST:
 		screenBuffer = testModeScreenBuffer;

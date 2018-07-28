@@ -48,6 +48,7 @@ void initSound()
 	soundVolUp();
 	soundVolUp();
 
+	/*
 	uint8_t n = 2;
 
 	uint8_t files = sfx.listFiles();
@@ -66,7 +67,7 @@ void initSound()
 	//if (!sfx.playTrack("START   WAV")) {
 	//	Serial.println("Failed to play track?");
 	//}
-	/*
+	
 	Serial.print("\nPlaying track #"); Serial.println(n);
 	if (!sfx.playTrack((uint8_t)n)) {
 		Serial.println("Failed to play track?");
@@ -92,25 +93,16 @@ void setup() {
 */
 
 void soundVolUp() {
-	Serial.println("Vol up...");
 	uint16_t v;
 	if (!(v = sfx.volUp())) {
 		Serial.println("Failed to adjust");
 	}
-	else {
-		Serial.print("Volume: "); Serial.println(v);
-	}
 }
 
 void soundVolDown() {
-	Serial.println("Vol down...");
 	uint16_t v;
 	if (!(v = sfx.volDown())) {
 		Serial.println("Failed to adjust");
-	}
-	else {
-		Serial.print("Volume: ");
-		Serial.println(v);
 	}
 }
 
