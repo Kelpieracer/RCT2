@@ -1,6 +1,10 @@
 
 //http://embed.plnkr.co/3VUsekP3jC5xwSIQDVHx/preview
 
+#include "timer.h"
+
+#define DISPLAY_PERIOD_MS 20
+
 #define COL_1 A4
 #define COL_2 7
 #define COL_3 8
@@ -74,99 +78,18 @@ byte X[] = { B00000000,B01000010,B00100100,B00011000,B00011000,B00100100,B010000
 byte Y[] = { B00000000,B01000100,B00101000,B00010000,B00010000,B00010000,B00010000,B00000000 };
 byte Z[] = { B00000000,B00111100,B00000100,B00001000,B00010000,B00100000,B00111100,B00000000 };
 
-float timeCount = 0;
 
+static long _displayTime = millis();
 void refreshDisplay() {
-	// This could be rewritten to not use a delay, which would make it appear brighter
-	delay(0);
-	timeCount += 1;
-	if (timeCount <  70) {
-		drawScreen(A);
-	}
-	else if (timeCount <  1) {
-		// do nothing
-	}
-	else if (timeCount <  150) {
-		drawScreen(R);
-	}
-	else if (timeCount <  1) {
-		// nothing
-	}
-	else if (timeCount <  270) {
-		drawScreen(D);
-	}
-	else if (timeCount <  1) {
-		// nothing
-	}
-	else if (timeCount <  350) {
-		drawScreen(U);
-	}
-	else if (timeCount <  1) {
-		// nothing
-	}
-	else if (timeCount <  430) {
-		drawScreen(I);
-	}
-	else if (timeCount <  1) {
-		// nothing
-	}
-	else if (timeCount <  510) {
-		drawScreen(N);
-	}
-	else if (timeCount <  1) {
-
-	}
-	else if (timeCount <  550) {
-		drawScreen(O);
-	}
-	else if (timeCount <  1) {
-		// do nothing
-	}
-	else if (timeCount <  590) {
-		drawScreen(EX);
-	}
-	else if (timeCount <  1) {
-		// nothing
-	}
-	else if (timeCount <  630) {
-		drawScreen(EX);
-	}
-	else if (timeCount <  1) {
-
-		//} else if (timeCount <  670) {
-		//drawScreen(A);
-		//} else if (timeCount <  1) {
-
-		//} else if (timeCount <  710) {
-		//drawScreen(R);
-		//} else if (timeCount <  1) {
-
-		//} else if (timeCount <  750) {
-		//drawScreen(D);
-		//} else if (timeCount <  1) {
-
-		//} else if (timeCount <  790) {
-		//drawScreen(U);
-		//} else if (timeCount <  1) {
-
-		//} else if (timeCount <  830) {
-		//drawScreen(I);
-		//} else if (timeCount <  1) {
-
-		//} else if (timeCount <  870) {
-
-		//} else if (timeCount <  1) {
-
-		//} else if (timeCount <  910) {
-		//  drawScreen(O);
-		//} else if (timeCount <  1) {
-
-	}
-	else {
-		// back to the start
-		timeCount = 0;
-	}
+	// Is it time to check the sensors?
+	long _currentTime = millis();
+	if (_currentTime < _displayTime + DISPLAY_PERIOD_MS)
+		return;
+	else
+		_displayTime = _currentTime;
+	showRawSensorData(_currentTime % (DISPLAY_PERIOD_MS / 2), sensorStates);
 }
+
 void  drawScreen(byte buffer2[]) {
 
 
@@ -194,4 +117,42 @@ void setColumns(byte b) {
 
 										   // If the polarity of your matrix is the opposite of mine
 										   // remove all the '~' above.
+}
+
+TimerClass _blinkObj;
+byte bitWise[8] = { B00000001, B00000010, B00000100, B00001000, B00010000, B00100000, B01000000, B10000000 };
+
+void showRawSensorData(byte blink, byte sensors[]) 
+{
+	//for (int i = FIRST_SENSOR_IN_USE; i <= LAST_SENSOR_IN_USE; i++)
+	//	Serial.print(sensors[i]);
+	//Serial.println("");
+	byte output[] = { B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000 };
+	for (byte sensor = 0; sensor < 8; sensor++)
+	{
+		checkSensor(&sensors[sensor], &output[0], 0, sensor);
+	}
+	for (byte sensor = 8; sensor < 16; sensor++)
+	{
+		checkSensor(&sensors[sensor], &output[1], 1, sensor);
+	}
+	for (byte sensor = 16; sensor < 24; sensor++)
+	{
+		checkSensor(&sensors[sensor], &output[2], 2, sensor);
+	}
+	drawScreen(output);
+	//Serial.print(output[0], BIN);
+	//Serial.print(" - ");
+	//Serial.print(output[1], BIN);
+	//Serial.println("");
+}
+
+byte checkSensor(byte *sensor, byte *output, byte row, byte sensorIdx)
+{
+	if (sensorIdx < FIRST_SENSOR_IN_USE || sensorIdx > LAST_SENSOR_IN_USE)
+		return;
+	if (*sensor == SENSOR_COVERED)
+		*output |= bitWise[sensorIdx % 8];
+	else if (*sensor == SENSOR_FAIL)
+		*output |= bitWise[sensorIdx % 8] * (millis() / 500) % 2;
 }

@@ -1,6 +1,8 @@
 	void loop() {
-		checkSensors(true);
+		checkSensors(true, false);
 		refreshDisplay();
+		checkBuzzer();
+		checkIR();
 	}
 
 

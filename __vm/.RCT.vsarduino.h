@@ -75,6 +75,8 @@ typedef void *__builtin_va_list;
 #define pgm_read_ptr(address_short)   short()
 
 #include "RCT.ino"
+#include "Buzzer.ino"
+#include "Sound.ino"
 #include "aDotMatrix.ino"
 #include "aSensors.ino"
 #include "bIR.ino"

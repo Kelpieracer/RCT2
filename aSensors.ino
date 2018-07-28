@@ -1,13 +1,8 @@
 #include "Arduino.h"
 
-#define SENSORS 20
-#define FIRST_SENSOR_IN_USE 4
-#define LAST_SENSOR_IN_USE 13
-#define SENSOR_PERIOD_MS 10
-#define LASER_SENSOR_DELAY 1000
-#define FAIL 0
-#define COVER 1
-#define SEE 2
+#define SENSOR_PERIOD_MS 5
+#define SENSOR_RECORD_STEPS
+#define LASER_SENSOR_DELAY_US 20
 
 // Photo transistor sensors
 // PT202C
@@ -38,17 +33,20 @@ uint8_t Laser[SENSORS] = { 2,	// 2
 3,		// 3
 4,		// 4
 A14,	// 5
-A15,	// 6
+A15,	// 6 
+
 17,		// 7
 16,		// 8
 19,		// 9
 18,		// 10
 20,		// 12
+
 21,		// 13
 24,		// 14
 22,		// 15
 23,		// 16
 A12,	// 17
+
 A13,	// 18
 A10,	// 19
 A11,	// 20
@@ -56,43 +54,54 @@ A9,		// 22
 A8,		// 23
 };
 
-byte sensorState[SENSORS];
+
 
 long sensorTime = millis();
 
-void setupSensors() {
+void initSensors() {
 	for (int i = 0; i<SENSORS - 1; i++)
 		pinMode(Sensor[i], INPUT);
 	for (int i = 0; i<SENSORS - 1; i++)
 		pinMode(Laser[i], OUTPUT);
+
+	return;
 }
 
-void checkSensors(bool running) {
-	// Is it time to check the sensors?
+void checkSensors(bool running, bool startRecording) {
 	long _currentTime = millis();
+	if (!running)	// Is it time to check the sensors?
+		return;
+
 	if (_currentTime < sensorTime + SENSOR_PERIOD_MS)
 		return;
 	else
 		sensorTime = _currentTime;
-	if (!running)
-		return;
 
 	// Check all the sensors that are in use
 	for (byte i = FIRST_SENSOR_IN_USE; i < LAST_SENSOR_IN_USE+1; i++) {
+		digitalWrite(Laser[i], LOW);
 		if (digitalRead(Sensor[i]) == LOW) {
 			// Too much light
-			sensorState[i] = FAIL;
+			sensorStates[i] = SENSOR_FAIL;
+			//Serial.print("f");
 		}
-		else {
+		else 
+		{
 			// Default is input is covered
-			sensorState[i] = COVER;
+			sensorStates[i] = SENSOR_COVERED;
+			digitalWrite(Laser[i], HIGH);
+			delayMicroseconds(LASER_SENSOR_DELAY_US);
+			if (digitalRead(Sensor[i]) == LOW) 
+			{
+				sensorStates[i] = SENSOR_SEES;
+				//Serial.print("S");
+			}
+			else
+			{
+				//Serial.print("c");
+			}
+			digitalWrite(Laser[i], LOW);
 		}
-		digitalWrite(Laser[i], HIGH);
-		for (int del = 0; del < LASER_SENSOR_DELAY; del++) {
-		}
-		if (digitalRead(Sensor[i]) == LOW)
-			sensorState[i] = SEE;
-		digitalWrite(Laser[i], LOW);
 	};
-	delay(0);
+	//Serial.println("");
 }

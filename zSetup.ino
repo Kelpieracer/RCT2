@@ -2,14 +2,18 @@
 
 void setup() {
 	Serial.begin(115200);
+
+	delay(500);		// Delay needed here to prevent double reset
+
+	initBuzzer();
+
+	initSound();
 	
 	// Setup IR
-	pinMode(13, OUTPUT);
-	irrecv.enableIRIn();
-	irrecv.blink13(true);
+	initIR();
 	
 	// Setup sensors and lasers
-	setupSensors();
+	initSensors();
 
 	// Setup display
 	for (int i = 0; i < 8; i++) {
@@ -19,9 +23,6 @@ void setup() {
 		digitalWrite(cols[i], HIGH);
 	}
 
-	//digitalWrite(Laser[3], HIGH);
-	//digitalWrite(Laser[4], HIGH);
-	//digitalWrite(Laser[5], HIGH);
-	//delay(400000);
+	playBuzzChar(BuzzA);
 }
 
