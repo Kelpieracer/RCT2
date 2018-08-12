@@ -1,3 +1,30 @@
+/* TODO
+
+RCMODE 	 Juoksukontakti (eq)
+STOPMODE Pysäytyskontakti (pause)
+STANDBY  Valmiustila (power)
+TESTMODE Testitila (usd)
+
+RCEASY Helppo kriteeri (rev)
+RCBONUS Bonuskriteeri (fw)
+RCHITLOW Alas asti (1) 40%
+RCLONGST Pitkä osuma (2) 50%
+RCAMOUNT Monta osumaa (3) 6 sensors
+RCFAST	Nopea kontakti (4) erikseen nopeuden valinta
+
+RCSPEED Nopeus (rand)
+(1-9)
+
+VOICE	Äänet (mode)
+CLICKS	Askelklikkaukset
+PRAISE	Kehut
+
+ON	Päällä
+OFF	Pois
+
+0...9
+*/
+
 #include "Adafruit_Soundboard.h"
 
 #define RC_MODE_ARMED 0
@@ -10,7 +37,19 @@
 #define RC_TOO_LONG_STRIDE_MS 5000
 #define RC_NO_CONTACT_TIME_MS 500
 
-#define RC_SCORE_EASING 2
+#define RC_SCORE_EASING 1
+
+struct RC_criteria {
+	int address = 0;
+	bool goLow = false;
+	bool longHit = false;
+	bool runHit = false;
+	bool speed = 0;
+	char written[] = "Wri";
+};
+
+RC_criteria rcEasyCriterion;
+RC_criteria rcBonusCriterion;
 
 byte rcMode = RC_MODE_ARMED;
 long rcStrideStart_ms;
@@ -38,6 +77,15 @@ byte patternSpeed[] = {		B00000000,		// <1500
 							B11111111 };	// <130
 
 int rcSpeeds_ms[8] = { 1600, 1100, 800, 600, 450, 300, 200, 130 };
+
+void initRC()
+{
+	rcEasyCriterion.address = 0;
+	rcEasyCriterion.goLow = true;
+	rcBonusCriterion.address = 20;
+	rcBonusCriterion.goLow = true;
+	rcBonusCriterion.speed = true;
+}
 
 void drawRCScore(int score, byte* screenBuff)
 {

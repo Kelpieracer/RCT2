@@ -76,8 +76,10 @@ typedef void *__builtin_va_list;
 
 #include "RCT.ino"
 #include "Buzzer.ino"
+#include "Printf.ino"
 #include "RC.ino"
 #include "Sound.ino"
+#include "Speak.ino"
 #include "UI.ino"
 #include "aDotMatrix.ino"
 #include "aSensors.ino"

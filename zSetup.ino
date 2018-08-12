@@ -24,5 +24,7 @@ void setup() {
 	}
 
 	playBuzzChar(BuzzA);
+	Debug("loop: %d\n", 5);
+
 }
 

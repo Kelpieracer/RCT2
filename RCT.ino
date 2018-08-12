@@ -57,3 +57,42 @@ byte Z[] = { B00000000,B00111100,B00000100,B00001000,B00010000,B00100000,B001111
 byte _2[] = { B00000000, B00111000, B01000100, B00000100, B00111000, B01000000, B01000000, B01111100 };
 
 byte CLEAR[] = { B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000 };
+
+#include <avr/pgmspace.h>
+
+#define SerialPrintf(fmt, ...) _SerialPrintf(PSTR(fmt), ##__VA_ARGS__)
+#define NullPrintf(fmt, ...) 
+
+extern "C" {
+	int serialputc(char c, FILE *fp)
+	{
+		if (c == '\n')
+			Serial.write('\r');
+		Serial.write(c);
+	}
+}
+
+
+void _SerialPrintf(const char *fmt, ...)
+{
+	FILE stdiostr;
+	va_list ap;
+
+	fdev_setup_stream(&stdiostr, serialputc, NULL, _FDEV_SETUP_WRITE);
+
+	va_start(ap, fmt);
+	vfprintf_P(&stdiostr, fmt, ap);
+	va_end(ap);
+}
+
+/*
+* map Printf() to SerialPrintf()
+* (Can't use printf() as the IDE uses it to include stdio.h and then our define would create problems. )
+*/
+
+#define Printf SerialPrintf
+
+/*
+* To use it for debugging define something like this:
+*/
+#define Debug SerialPrintf
