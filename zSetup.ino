@@ -23,6 +23,8 @@ void setup() {
 		digitalWrite(cols[i], HIGH);
 	}
 
+	initRC();
+
 	playBuzzChar(BuzzA);
 	Debug("loop: %d\n", 5);
 

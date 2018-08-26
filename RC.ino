@@ -36,15 +36,16 @@ OFF	Pois
 #define RC_WAIT_BEFORE_NEW_STRIDE 2000
 #define RC_TOO_LONG_STRIDE_MS 5000
 #define RC_NO_CONTACT_TIME_MS 500
+#define RC_LONG_CONTACT_LEN_PR 60
 
-#define RC_SCORE_EASING 1
+#define RC_SCORE_EASING 3
 
 struct RC_criteria {
 	int address = 0;
 	bool goLow = false;
 	bool longHit = false;
 	bool runHit = false;
-	bool speed = 0;
+	byte speed = 0;
 	char written[] = "Wri";
 };
 
@@ -81,10 +82,12 @@ int rcSpeeds_ms[8] = { 1600, 1100, 800, 600, 450, 300, 200, 130 };
 void initRC()
 {
 	rcEasyCriterion.address = 0;
-	rcEasyCriterion.goLow = true;
+	rcEasyCriterion.speed = 1;
+
 	rcBonusCriterion.address = 20;
 	rcBonusCriterion.goLow = true;
-	rcBonusCriterion.speed = true;
+	//rcBonusCriterion.longHit = true;
+	rcBonusCriterion.speed = 4;
 }
 
 void drawRCScore(int score, byte* screenBuff)
@@ -166,13 +169,17 @@ byte getLowestHit(byte* sensorData)
 	for (lowest = FIRST_SENSOR_IN_USE; lowest <= LAST_SENSOR_IN_USE; lowest++)
 		if (sensorData[lowest] == SENSOR_COVERED)
 			break;
-	Serial.print("lowest:"); Serial.print(lowest);
-	float rel = 1 - (float) (lowest - FIRST_SENSOR_IN_USE) / (LAST_SENSOR_IN_USE - FIRST_SENSOR_IN_USE);
-	Serial.print(" / "); Serial.println(3.99 * rel);
-	return 3.99 * rel;
+	//Serial.print("lowest:"); Serial.println(lowest);
+	return lowest;
 }
 
-byte getStrideLength(byte* sensorData)
+bool goneLow(byte* sensorData)
+{
+	byte lowest = getLowestHit(sensorData);
+	return lowest < (LAST_SENSOR_IN_USE - FIRST_SENSOR_IN_USE) / 2 + FIRST_SENSOR_IN_USE + 1;
+}
+
+int getStrideLength_pr(byte* sensorData)
 {
 	byte lowest;
 	for (lowest = FIRST_SENSOR_IN_USE; lowest <= LAST_SENSOR_IN_USE; lowest++)
@@ -182,8 +189,15 @@ byte getStrideLength(byte* sensorData)
 	for (highest = LAST_SENSOR_IN_USE; highest >= FIRST_SENSOR_IN_USE; highest--)
 		if (sensorData[highest] == SENSOR_COVERED)
 			break;
-	float rel = (float) ((highest - lowest) - FIRST_SENSOR_IN_USE) / (LAST_SENSOR_IN_USE - FIRST_SENSOR_IN_USE);
-	return 3.99 * rel;
+	int rel = ((highest - lowest) * 100) / (LAST_SENSOR_IN_USE - FIRST_SENSOR_IN_USE);
+	return rel;
+}
+
+bool goneLong(byte* sensorData)
+{
+	byte len = getStrideLength_pr(sensorData);
+
+	return getStrideLength_pr(sensorData) > RC_LONG_CONTACT_LEN_PR;
 }
 
 byte getStrideSensors(byte* sensorData)
@@ -240,31 +254,68 @@ void cumulateRCSensor(byte* sensors)
 		if (sensors[i] == SENSOR_COVERED)
 		{
 			if(rcSensorCumulative[i] != SENSOR_COVERED)
-				if (!sfx.playTrack("CLICK0  WAV"))
+//				if (!sfx.playTrack("CLICK0  WAV"))
+				if (!sfx.playTrack("GOOD    WAV"))
 					Serial.println("Failed to play track?");					
 			rcSensorCumulative[i] = SENSOR_COVERED;
 		}
 	}
 }
 
-byte calculateRCScore()
+bool isRCCriteria(struct RC_criteria criteria, byte* sensorData)
 {
-	return _calculateRCScore(getStrideSensors(rcSensorCumulative), getLowestHit(rcSensorCumulative), getStrideLength(rcSensorCumulative), getRCSpeed(rcStrideEnd_ms - rcStrideStart_ms));
+	Serial.print("goneLow:");
+	Serial.println(goneLow(sensorData));
+	Serial.print("goneLong:");
+	Serial.println(goneLong(sensorData));
+	Serial.print("getRCSpeed:");
+	Serial.println(getRCSpeed(rcStrideEnd_ms - rcStrideStart_ms));
+	Serial.print("crLow:");
+	Serial.println(criteria.goLow);
+	Serial.print("crLong:");
+	Serial.println(criteria.longHit);
+	Serial.print("crRCSpeed:");
+	Serial.println(criteria.speed);
+
+	Serial.println(getRCSpeed(rcStrideEnd_ms - rcStrideStart_ms));
+	if ((criteria.goLow == true) && !goneLow(sensorData))
+	{
+		Serial.println("Low fail");
+		return false;
+	}
+	if ((criteria.longHit == true) && !goneLong(sensorData))
+	{
+		Serial.println("Long fail");
+		return false;
+	}
+	if (criteria.speed > getRCSpeed(rcStrideEnd_ms - rcStrideStart_ms))
+	{
+		Serial.println("Speed fail");
+		return false;
+	}
+	Serial.println("Success");
+	return true;
 }
 
-byte _calculateRCScore(byte sensors, byte lowestScore, byte strideLength, byte speed)
+byte calculateRCScore()
 {
-	byte rSensors = Min(Max(sensors, 1), 3);
-	byte rLowest = Min(Max(lowestScore, 1), 3);
-	byte rLength = Min(Max(strideLength, 1), 3);
+	if (isRCCriteria(rcBonusCriterion, rcSensorCumulative))
+		return 2;
+	if (isRCCriteria(rcEasyCriterion, rcSensorCumulative))
+		return 1;
+	return 0;
+}
+
+byte debugRCScore(byte sensors, byte lowestScore, byte strideLength, byte speed, byte score)
+{
+	byte rSensors = sensors;
+	byte rLowest = lowestScore;
+	byte rLength = strideLength;
 	byte rSpeed = (speed / 2);
 	Serial.print(rSensors); Serial.print(" ");
 	Serial.print(rLowest); Serial.print(" ");
 	Serial.print(rLength); Serial.print(" ");
 	Serial.print(rSpeed); Serial.println(" ");
-	byte _totalScore = ((rSensors * rLowest * rLength * rSpeed) * RC_SCORE_EASING) / 3;
-	if (rSpeed > 0 && _totalScore == 0)
-		_totalScore = 1;
 
 	for (byte i = FIRST_SENSOR_IN_USE; i <= LAST_SENSOR_IN_USE; i++)
 		Serial.print(rcSensorCumulative[i]);
@@ -281,11 +332,12 @@ byte _calculateRCScore(byte sensors, byte lowestScore, byte strideLength, byte s
 	Serial.print(" Dur(ms):");
 	Serial.print(rcStrideEnd_ms - rcStrideStart_ms);
 	Serial.print(" Total:");
-	Serial.print(_totalScore);
+	Serial.print(score);
 	Serial.println("");
 
-	return Max(Min(_totalScore, 3), 0);
+	return score;
 }
+
 
 extern byte RCScreenBuffer[];
 void checkRC()
@@ -326,25 +378,25 @@ void checkRC()
 		{
 			rcMode = RC_MODE_ENDED;
 			Serial.println("RC_MODE_ENDED");
+
 			byte _score = calculateRCScore();
+			debugRCScore(getStrideSensors(rcSensorCumulative), getLowestHit(rcSensorCumulative), getStrideLength_pr(rcSensorCumulative), getRCSpeed(rcStrideEnd_ms - rcStrideStart_ms), _score);
+
 			drawRCScore(_score, RCScreenBuffer);
 			drawRCHits(rcSensorCumulative, RCScreenBuffer);
 			drawRCSpeed(rcStrideEnd_ms-rcStrideStart_ms, RCScreenBuffer);
 			switch (_score)
 			{
-			case 0:
-				break;
-			case 1:
-				if (!sfx.playTrack("GOOD    WAV")) Serial.println("Failed to play track?");
-				break;
-			case 2:
-				if (!sfx.playTrack("VERYGOODWAV")) Serial.println("Failed to play track?");
-				break;
-			case 3:
-				if (!sfx.playTrack("CELEBRATWAV")) Serial.println("Failed to play track?");
-				break;
-			default:
-				break;
+				case 0:
+					break;
+				case 1:
+					//if (!sfx.playTrack("GOOD    WAV")) Serial.println("Failed to play track?");
+					break;
+				case 2:
+					//if (!sfx.playTrack("VERYGOODWAV")) Serial.println("Failed to play track?");
+					break;
+				default:
+					break;
 			}
 			break;
 		}
@@ -361,14 +413,14 @@ void checkRC()
 			rcMode = RC_MODE_ARMED;
 			Serial.println("RC_MODE_ARMED");
 			clearRCSensorCumulative();
-			playBuzzChar(BuzzBip);
+			//playBuzzChar(BuzzBip);
 		}
 		break;
 	case RC_MODE_WAIT_TO_CLEAR:
 		if (isBoardClear(sensorStates))
 		{
 			clearRCScreen(RCScreenBuffer);
-			playBuzzChar(BuzzBip);
+			//playBuzzChar(BuzzBip);
 			rcMode = RC_MODE_ARMED;
 			Serial.println("RC_MODE_ARMED");
 			break;

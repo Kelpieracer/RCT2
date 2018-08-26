@@ -54,20 +54,29 @@ A9,		// 22
 A8,		// 23
 };
 
-
+bool ignoreSensor[SENSORS];
 
 long sensorTime = millis();
 
 void initSensors() {
-	for (int i = 0; i<SENSORS - 1; i++)
+	for (int i = 0; i < SENSORS - 1; i++)
+	{
 		pinMode(Sensor[i], INPUT);
-	for (int i = 0; i<SENSORS - 1; i++)
 		pinMode(Laser[i], OUTPUT);
+		ignoreSensor[i] = false;
+	}
 
+	sensorTime -= 2 * SENSOR_PERIOD_MS;
+	checkSensors(true);
+	for (int i = 0; i < SENSORS - 1; i++)
+	{
+		if (sensorStates[i] != SENSOR_SEES)
+			ignoreSensor[i] = true;
+	}
 	return;
 }
 
-void checkSensors(bool running, bool startRecording) {
+void checkSensors(bool running) {
 	long _currentTime = millis();
 	if (!running)	// Is it time to check the sensors?
 		return;
@@ -85,29 +94,37 @@ void checkSensors(bool running, bool startRecording) {
 		sensorTime = _currentTime;
 
 	// Check all the sensors that are in use
-	for (byte i = FIRST_SENSOR_IN_USE; i < LAST_SENSOR_IN_USE+1; i++) {
-		digitalWrite(Laser[i], LOW);
-		if (digitalRead(Sensor[i]) == LOW) {
-			// Too much light
-			sensorStates[i] = SENSOR_FAIL;
-			//Serial.print("f");
-		}
-		else 
+	for (byte i = FIRST_SENSOR_IN_USE; i < LAST_SENSOR_IN_USE + 1; i++) {
+		if (!ignoreSensor[i] && mode != MODE_TEST)
 		{
-			// Default is input is covered
-			sensorStates[i] = SENSOR_COVERED;
-			digitalWrite(Laser[i], HIGH);
-			delayMicroseconds(LASER_SENSOR_DELAY_US);
-			if (digitalRead(Sensor[i]) == LOW) 
+			digitalWrite(Laser[i], LOW);
+			if (digitalRead(Sensor[i]) == LOW)
 			{
-				sensorStates[i] = SENSOR_SEES;
-				//Serial.print("S");
+				// Too much light
+				sensorStates[i] = SENSOR_FAIL;
+				//Serial.print("f");
 			}
 			else
 			{
-				//Serial.print("c");
+				// Default is input is covered
+				sensorStates[i] = SENSOR_COVERED;
+				digitalWrite(Laser[i], HIGH);
+				delayMicroseconds(LASER_SENSOR_DELAY_US);
+				if (digitalRead(Sensor[i]) == LOW)
+				{
+					sensorStates[i] = SENSOR_SEES;
+					//Serial.print("S");
+				}
+				else
+				{
+					//Serial.print("c");
+				}
+				digitalWrite(Laser[i], LOW);
 			}
-			digitalWrite(Laser[i], LOW);
+		}
+		else
+		{
+			sensorStates[i] = SENSOR_SEES;
 		}
 	};
 	//Serial.println("");
